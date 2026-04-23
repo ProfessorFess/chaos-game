@@ -1,6 +1,7 @@
 // =============================================================
 // The Chaos Game — sketch.js
-// Steps 1–5: static polygon + chaos engine + n & ratio sliders.
+// Steps 1–8: polygon + chaos engine + sliders + optimal button
+//            + restriction rules + color-mode toggle.
 // =============================================================
 
 const state = {
@@ -22,9 +23,29 @@ const BG_COLOR = '#0f0f14';
 const VERTEX_COLOR = '#f1f5f9';
 const VERTEX_LABEL_COLOR = '#cbd5e1';
 const VERTEX_RADIUS = 6;
-const POINT_COLOR = { r: 79, g: 195, b: 247, a: 200 }; // #4fc3f7
+
+const PALETTE_HEX = [
+  '#ef4444', '#f59e0b', '#eab308', '#22c55e',
+  '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'
+];
+const SINGLE_HEX = '#4fc3f7';
+const POINT_ALPHA = 200;
+
+function hexToRgb(h) {
+  const v = h.replace('#', '');
+  return {
+    r: parseInt(v.slice(0, 2), 16),
+    g: parseInt(v.slice(2, 4), 16),
+    b: parseInt(v.slice(4, 6), 16)
+  };
+}
+
+const PALETTE_RGB = PALETTE_HEX.map(hexToRgb);
+const SINGLE_RGB = hexToRgb(SINGLE_HEX);
 
 let pointCountEl = null;
+let ratioSliderEl = null;
+let ratioValueEl = null;
 
 function setup() {
   const container = document.getElementById('canvas-container');
@@ -38,6 +59,8 @@ function setup() {
   initCurrentPoint();
 
   pointCountEl = document.getElementById('point-count');
+  ratioSliderEl = document.getElementById('ratio');
+  ratioValueEl = document.getElementById('ratio-value');
   wireControls();
 }
 
@@ -45,8 +68,6 @@ function draw() {
   if (state.paused) return;
 
   noStroke();
-  fill(POINT_COLOR.r, POINT_COLOR.g, POINT_COLOR.b, POINT_COLOR.a);
-
   for (let i = 0; i < state.iterationsPerFrame; i++) {
     stepOnce();
   }
@@ -61,6 +82,8 @@ function stepOnce() {
   const nx = p.x + state.ratio * (target.x - p.x);
   const ny = p.y + state.ratio * (target.y - p.y);
 
+  const c = getPointColor(v);
+  fill(c.r, c.g, c.b, POINT_ALPHA);
   rect(nx, ny, 1.5, 1.5);
 
   p.x = nx;
@@ -71,8 +94,75 @@ function stepOnce() {
 }
 
 function pickVertex() {
-  // No restrictions yet — step 7 adds the rules.
-  return Math.floor(Math.random() * state.n);
+  const n = state.n;
+  const prev = state.prevVertex;
+  const prev2 = state.prevPrevVertex;
+  const rule = state.restriction;
+  const allowed = [];
+
+  switch (rule) {
+    case 'none':
+      return Math.floor(Math.random() * n);
+
+    case 'no-repeat': {
+      if (prev < 0) return Math.floor(Math.random() * n);
+      for (let i = 0; i < n; i++) {
+        if (i !== prev) allowed.push(i);
+      }
+      break;
+    }
+
+    case 'no-adjacent': {
+      if (prev < 0) return Math.floor(Math.random() * n);
+      const a = (prev - 1 + n) % n;
+      const b = (prev + 1) % n;
+      for (let i = 0; i < n; i++) {
+        if (i !== a && i !== b) allowed.push(i);
+      }
+      break;
+    }
+
+    case 'no-two-away': {
+      if (prev < 0) return Math.floor(Math.random() * n);
+      const a = (prev - 2 + n) % n;
+      const b = (prev + 2) % n;
+      for (let i = 0; i < n; i++) {
+        if (i !== a && i !== b) allowed.push(i);
+      }
+      break;
+    }
+
+    case 'no-repeat-if-doubled': {
+      if (prev >= 0 && prev === prev2) {
+        for (let i = 0; i < n; i++) {
+          if (i !== prev) allowed.push(i);
+        }
+      } else {
+        return Math.floor(Math.random() * n);
+      }
+      break;
+    }
+
+    default:
+      return Math.floor(Math.random() * n);
+  }
+
+  if (allowed.length === 0) return Math.floor(Math.random() * n);
+  return allowed[Math.floor(Math.random() * allowed.length)];
+}
+
+function optimalRatio(n) {
+  let sum = 1;
+  const limit = Math.floor(n / 4);
+  for (let k = 1; k <= limit; k++) {
+    sum += Math.cos((2 * Math.PI * k) / n);
+  }
+  return 1 / (2 * sum);
+}
+
+function getPointColor(vertexIndex) {
+  if (state.colorMode === 'single') return SINGLE_RGB;
+  return PALETTE_RGB[vertexIndex % PALETTE_RGB.length];
 }
 
 function generateVertices(n) {
@@ -123,7 +213,6 @@ function drawVertexMarkers() {
 }
 
 function initCurrentPoint() {
-  // Random point inside the polygon's inscribed circle.
   const cx = width / 2;
   const cy = height / 2;
   const circumradius = Math.min(width, height) * 0.4;
@@ -155,8 +244,9 @@ function updatePointCountDisplay() {
 function wireControls() {
   const vertexSlider = document.getElementById('vertex-count');
   const vertexValue = document.getElementById('vertex-count-value');
-  const ratioSlider = document.getElementById('ratio');
-  const ratioValue = document.getElementById('ratio-value');
+  const resetBtn = document.getElementById('reset-optimal');
+  const restrictionSelect = document.getElementById('restriction');
+  const colorModeCheckbox = document.getElementById('color-mode');
 
   vertexSlider.addEventListener('input', (e) => {
     const n = parseInt(e.target.value, 10);
@@ -166,10 +256,28 @@ function wireControls() {
     clearCanvas();
   });
 
-  ratioSlider.addEventListener('input', (e) => {
+  ratioSliderEl.addEventListener('input', (e) => {
     const r = parseFloat(e.target.value);
     state.ratio = r;
-    ratioValue.textContent = r.toFixed(2);
+    ratioValueEl.textContent = r.toFixed(2);
     clearCanvas();
+  });
+
+  resetBtn.addEventListener('click', () => {
+    const r = optimalRatio(state.n);
+    state.ratio = r;
+    ratioSliderEl.value = r;
+    ratioValueEl.textContent = r.toFixed(2);
+    clearCanvas();
+  });
+
+  restrictionSelect.addEventListener('change', (e) => {
+    state.restriction = e.target.value;
+    clearCanvas();
+  });
+
+  colorModeCheckbox.addEventListener('change', (e) => {
+    state.colorMode = e.target.checked ? 'by-vertex' : 'single';
+    // Per §6.3: do NOT clear — future points get new colors; old points remain.
   });
 }
