@@ -65,6 +65,11 @@ function setup() {
   ratioSliderEl = document.getElementById('ratio');
   ratioValueEl = document.getElementById('ratio-value');
   pauseBtnEl = document.getElementById('pause');
+
+  state.ratio = optimalRatio(state.n);
+  ratioSliderEl.value = state.ratio;
+  ratioValueEl.textContent = state.ratio.toFixed(2);
+
   wireControls();
   updateFractalLabel();
 }
@@ -157,17 +162,25 @@ function pickVertex() {
 }
 
 function optimalRatio(n) {
-  // n=7/8 use the classical literature values from §4.3's table; the closed-form
-  // formula in that section produces ~0.308 / ~0.293, which leaves visible overlap
-  // in the heptagon/octagon attractors. Table values 0.356 / 0.354 render cleaner.
-  if (n === 7) return 0.356;
-  if (n === 8) return 0.354;
-  let sum = 1;
-  const limit = Math.floor(n / 4);
-  for (let k = 1; k <= limit; k++) {
-    sum += Math.cos((2 * Math.PI * k) / n);
+  // The spec's formula gives the Hutchinson contraction ratio r (each sub-copy's
+  // scale relative to the original). Our chaos-game step is P + t*(V - P), which
+  // scales the displacement from V by (1 - t). So the chaos-game t that produces
+  // the canonical Sierpinski n-gon is t = 1 - r.
+  //
+  // n=7/8 use the classical literature r values (the closed-form gives ~0.308 /
+  // ~0.293, which leave visible overlap); table values 0.356 / 0.354 are cleaner.
+  let r;
+  if (n === 7) r = 0.356;
+  else if (n === 8) r = 0.354;
+  else {
+    let sum = 1;
+    const limit = Math.floor(n / 4);
+    for (let k = 1; k <= limit; k++) {
+      sum += Math.cos((2 * Math.PI * k) / n);
+    }
+    r = 1 / (2 * sum);
   }
-  return 1 / (2 * sum);
+  return 1 - r;
 }
 
 function getPointColor(vertexIndex) {
@@ -303,6 +316,12 @@ function wireControls() {
     const n = parseInt(e.target.value, 10);
     state.n = n;
     vertexValue.textContent = String(n);
+
+    const r = optimalRatio(n);
+    state.ratio = r;
+    ratioSliderEl.value = r;
+    ratioValueEl.textContent = r.toFixed(2);
+
     generateVertices(n);
     clearCanvas();
     updateFractalLabel();
