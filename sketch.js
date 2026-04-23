@@ -14,7 +14,7 @@ const state = {
   n: 3,
   ratio: 0.5,
   restriction: 'none',
-  iterationsPerFrame: 500,
+  iterationsPerFrame: 100,
   colorMode: 'by-vertex'
 };
 
@@ -25,7 +25,7 @@ const VERTEX_LABEL_COLOR = '#cbd5e1';
 const VERTEX_RADIUS = 6;
 
 const PALETTE_HEX = [
-  '#ef4444', '#f59e0b', '#eab308', '#22c55e',
+  '#ef4444', '#22c55e', '#eab308', '#f59e0b',
   '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'
 ];
 const SINGLE_HEX = '#4fc3f7';
