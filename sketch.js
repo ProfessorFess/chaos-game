@@ -44,8 +44,10 @@ const PALETTE_RGB = PALETTE_HEX.map(hexToRgb);
 const SINGLE_RGB = hexToRgb(SINGLE_HEX);
 
 let pointCountEl = null;
+let fractalLabelEl = null;
 let ratioSliderEl = null;
 let ratioValueEl = null;
+let pauseBtnEl = null;
 
 function setup() {
   const container = document.getElementById('canvas-container');
@@ -59,9 +61,12 @@ function setup() {
   initCurrentPoint();
 
   pointCountEl = document.getElementById('point-count');
+  fractalLabelEl = document.getElementById('fractal-label');
   ratioSliderEl = document.getElementById('ratio');
   ratioValueEl = document.getElementById('ratio-value');
+  pauseBtnEl = document.getElementById('pause');
   wireControls();
+  updateFractalLabel();
 }
 
 function draw() {
@@ -152,6 +157,11 @@ function pickVertex() {
 }
 
 function optimalRatio(n) {
+  // n=7/8 use the classical literature values from §4.3's table; the closed-form
+  // formula in that section produces ~0.308 / ~0.293, which leaves visible overlap
+  // in the heptagon/octagon attractors. Table values 0.356 / 0.354 render cleaner.
+  if (n === 7) return 0.356;
+  if (n === 8) return 0.354;
   let sum = 1;
   const limit = Math.floor(n / 4);
   for (let k = 1; k <= limit; k++) {
@@ -241,12 +251,53 @@ function updatePointCountDisplay() {
   }
 }
 
+function classifyFractal() {
+  const { n, ratio, restriction } = state;
+  const NEAR = 0.02;
+  const near = (a, b) => Math.abs(a - b) <= NEAR;
+
+  if (n === 3 && near(ratio, 0.5) && restriction === 'none') {
+    return 'Sierpinski Triangle';
+  }
+  if (n === 4 && near(ratio, 0.5)) {
+    if (restriction === 'no-repeat') return 'Vicsek Fractal';
+    if (restriction === 'no-adjacent') return 'Square Sierpinski variant';
+    if (restriction === 'none') return 'Filled Square (no fractal)';
+  }
+  if (n === 5 && near(ratio, optimalRatio(5)) && restriction === 'none') {
+    return 'Sierpinski Pentagon';
+  }
+  if (n === 6 && restriction === 'none') {
+    if (near(ratio, optimalRatio(6))) return 'Sierpinski Hexagon';
+    if (near(ratio, 0.5)) return 'Hexagonal gasket (filled)';
+  }
+  if (n === 7 && near(ratio, optimalRatio(7)) && restriction === 'none') {
+    return 'Sierpinski Heptagon';
+  }
+  if (n === 8 && near(ratio, optimalRatio(8)) && restriction === 'none') {
+    return 'Sierpinski Octagon';
+  }
+  return `Custom Chaos Game (${n}-gon, t=${ratio.toFixed(2)})`;
+}
+
+function updateFractalLabel() {
+  if (fractalLabelEl) fractalLabelEl.textContent = classifyFractal();
+}
+
+function saveImage() {
+  saveCanvas('chaos-game', 'png');
+}
+
 function wireControls() {
   const vertexSlider = document.getElementById('vertex-count');
   const vertexValue = document.getElementById('vertex-count-value');
   const resetBtn = document.getElementById('reset-optimal');
   const restrictionSelect = document.getElementById('restriction');
+  const speedSlider = document.getElementById('speed');
+  const speedValue = document.getElementById('speed-value');
   const colorModeCheckbox = document.getElementById('color-mode');
+  const clearBtn = document.getElementById('clear');
+  const saveBtn = document.getElementById('save');
 
   vertexSlider.addEventListener('input', (e) => {
     const n = parseInt(e.target.value, 10);
@@ -254,6 +305,7 @@ function wireControls() {
     vertexValue.textContent = String(n);
     generateVertices(n);
     clearCanvas();
+    updateFractalLabel();
   });
 
   ratioSliderEl.addEventListener('input', (e) => {
@@ -261,6 +313,7 @@ function wireControls() {
     state.ratio = r;
     ratioValueEl.textContent = r.toFixed(2);
     clearCanvas();
+    updateFractalLabel();
   });
 
   resetBtn.addEventListener('click', () => {
@@ -269,15 +322,37 @@ function wireControls() {
     ratioSliderEl.value = r;
     ratioValueEl.textContent = r.toFixed(2);
     clearCanvas();
+    updateFractalLabel();
   });
 
   restrictionSelect.addEventListener('change', (e) => {
     state.restriction = e.target.value;
     clearCanvas();
+    updateFractalLabel();
+  });
+
+  speedSlider.addEventListener('input', (e) => {
+    const v = parseInt(e.target.value, 10);
+    state.iterationsPerFrame = v;
+    speedValue.textContent = String(v);
+    // Per §6.3: do NOT clear.
   });
 
   colorModeCheckbox.addEventListener('change', (e) => {
     state.colorMode = e.target.checked ? 'by-vertex' : 'single';
     // Per §6.3: do NOT clear — future points get new colors; old points remain.
+  });
+
+  pauseBtnEl.addEventListener('click', () => {
+    state.paused = !state.paused;
+    pauseBtnEl.textContent = state.paused ? 'Resume' : 'Pause';
+  });
+
+  clearBtn.addEventListener('click', () => {
+    clearCanvas();
+  });
+
+  saveBtn.addEventListener('click', () => {
+    saveImage();
   });
 }
