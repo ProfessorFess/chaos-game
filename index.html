@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Chaos Game</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+</head>
+<body>
+  <header class="app-header">
+    <h1>The Chaos Game</h1>
+    <p class="subtitle">Fractals from Randomness</p>
+  </header>
+
+  <main class="app-main">
+    <section class="canvas-column">
+      <div id="canvas-container"></div>
+    </section>
+
+    <aside class="controls-column">
+      <section class="control-group">
+        <h2 class="group-title">Geometry</h2>
+        <div class="control-row">
+          <label for="vertex-count">
+            Number of vertices: <span id="vertex-count-value">3</span>
+          </label>
+          <input type="range" id="vertex-count" min="3" max="8" step="1" value="3" />
+        </div>
+      </section>
+
+      <section class="control-group">
+        <h2 class="group-title">Chaos Rule</h2>
+        <div class="control-row">
+          <label for="ratio">
+            Distance ratio (t): <span id="ratio-value">0.50</span>
+          </label>
+          <input type="range" id="ratio" min="0.10" max="0.90" step="0.01" value="0.50" />
+        </div>
+        <div class="control-row">
+          <button id="reset-optimal" class="btn">Reset to optimal</button>
+        </div>
+        <div class="control-row">
+          <label for="restriction">Restriction rule</label>
+          <select id="restriction">
+            <option value="none">None</option>
+            <option value="no-repeat">No repeat</option>
+            <option value="no-adjacent">No adjacent to previous</option>
+            <option value="no-two-away">No two away from previous</option>
+            <option value="no-repeat-if-doubled">No repeat if last two were same</option>
+          </select>
+        </div>
+      </section>
+
+      <section class="control-group">
+        <h2 class="group-title">Rendering</h2>
+        <div class="control-row">
+          <label for="speed">
+            Speed (iterations/frame): <span id="speed-value">500</span>
+          </label>
+          <input type="range" id="speed" min="1" max="2000" step="1" value="500" />
+        </div>
+        <div class="control-row">
+          <label class="checkbox-label">
+            <input type="checkbox" id="color-mode" checked />
+            <span>Color by target vertex</span>
+          </label>
+        </div>
+      </section>
+
+      <section class="control-group">
+        <h2 class="group-title">Playback</h2>
+        <div class="control-row button-row">
+          <button id="pause" class="btn btn-primary">Pause</button>
+          <button id="clear" class="btn">Clear</button>
+          <button id="save" class="btn">Save PNG</button>
+        </div>
+      </section>
+
+      <section class="control-group stats">
+        <h2 class="group-title">Stats</h2>
+        <div class="stat-row">
+          <span class="stat-label">Points plotted:</span>
+          <span class="stat-value" id="point-count">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Current fractal:</span>
+          <span class="stat-value" id="fractal-label">Sierpinski Triangle</span>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <script src="sketch.js"></script>
+</body>
+</html>
