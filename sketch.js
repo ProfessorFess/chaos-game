@@ -354,12 +354,10 @@ function wireControls() {
     const v = parseInt(e.target.value, 10);
     state.iterationsPerFrame = v;
     speedValue.textContent = String(v);
-    // Per §6.3: do NOT clear.
   });
 
   colorModeCheckbox.addEventListener('change', (e) => {
     state.colorMode = e.target.checked ? 'by-vertex' : 'single';
-    // Per §6.3: do NOT clear — future points get new colors; old points remain.
   });
 
   pauseBtnEl.addEventListener('click', () => {
