@@ -1,6 +1,6 @@
 // =============================================================
 // The Chaos Game — sketch.js
-// Steps 1–3: static polygon rendering scaffold.
+// Steps 1–5: static polygon + chaos engine + n & ratio sliders.
 // =============================================================
 
 const state = {
@@ -22,6 +22,9 @@ const BG_COLOR = '#0f0f14';
 const VERTEX_COLOR = '#f1f5f9';
 const VERTEX_LABEL_COLOR = '#cbd5e1';
 const VERTEX_RADIUS = 6;
+const POINT_COLOR = { r: 79, g: 195, b: 247, a: 200 }; // #4fc3f7
+
+let pointCountEl = null;
 
 function setup() {
   const container = document.getElementById('canvas-container');
@@ -32,11 +35,44 @@ function setup() {
   background(BG_COLOR);
 
   generateVertices(state.n);
-  noLoop(); // draw loop inactive until chaos engine is wired up (step 4+)
+  initCurrentPoint();
+
+  pointCountEl = document.getElementById('point-count');
+  wireControls();
 }
 
 function draw() {
-  // Chaos engine lands in step 4. For now, the polygon is drawn once in setup().
+  if (state.paused) return;
+
+  noStroke();
+  fill(POINT_COLOR.r, POINT_COLOR.g, POINT_COLOR.b, POINT_COLOR.a);
+
+  for (let i = 0; i < state.iterationsPerFrame; i++) {
+    stepOnce();
+  }
+  updatePointCountDisplay();
+}
+
+function stepOnce() {
+  const v = pickVertex();
+  const target = state.vertices[v];
+  const p = state.currentPoint;
+
+  const nx = p.x + state.ratio * (target.x - p.x);
+  const ny = p.y + state.ratio * (target.y - p.y);
+
+  rect(nx, ny, 1.5, 1.5);
+
+  p.x = nx;
+  p.y = ny;
+  state.prevPrevVertex = state.prevVertex;
+  state.prevVertex = v;
+  state.pointCount++;
+}
+
+function pickVertex() {
+  // No restrictions yet — step 7 adds the rules.
+  return Math.floor(Math.random() * state.n);
 }
 
 function generateVertices(n) {
@@ -84,4 +120,56 @@ function drawVertexMarkers() {
     text(`V${i + 1}`, lx, ly);
   }
   pop();
+}
+
+function initCurrentPoint() {
+  // Random point inside the polygon's inscribed circle.
+  const cx = width / 2;
+  const cy = height / 2;
+  const circumradius = Math.min(width, height) * 0.4;
+  const inscribed = circumradius * Math.cos(Math.PI / state.n);
+  const angle = Math.random() * 2 * Math.PI;
+  const rad = Math.random() * inscribed;
+  state.currentPoint = {
+    x: cx + rad * Math.cos(angle),
+    y: cy + rad * Math.sin(angle)
+  };
+}
+
+function clearCanvas() {
+  background(BG_COLOR);
+  drawVertexMarkers();
+  state.pointCount = 0;
+  state.prevVertex = -1;
+  state.prevPrevVertex = -1;
+  initCurrentPoint();
+  updatePointCountDisplay();
+}
+
+function updatePointCountDisplay() {
+  if (pointCountEl) {
+    pointCountEl.textContent = state.pointCount.toLocaleString();
+  }
+}
+
+function wireControls() {
+  const vertexSlider = document.getElementById('vertex-count');
+  const vertexValue = document.getElementById('vertex-count-value');
+  const ratioSlider = document.getElementById('ratio');
+  const ratioValue = document.getElementById('ratio-value');
+
+  vertexSlider.addEventListener('input', (e) => {
+    const n = parseInt(e.target.value, 10);
+    state.n = n;
+    vertexValue.textContent = String(n);
+    generateVertices(n);
+    clearCanvas();
+  });
+
+  ratioSlider.addEventListener('input', (e) => {
+    const r = parseFloat(e.target.value);
+    state.ratio = r;
+    ratioValue.textContent = r.toFixed(2);
+    clearCanvas();
+  });
 }
