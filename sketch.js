@@ -162,13 +162,13 @@ function pickVertex() {
 }
 
 function optimalRatio(n) {
-  // The spec's formula gives the Hutchinson contraction ratio r (each sub-copy's
-  // scale relative to the original). Our chaos-game step is P + t*(V - P), which
+  // the spec's formula gives the Hutchinson contraction ratio r (each sub-copy's
+  // scale relative to the original). the chaos-game step is P + t*(V - P), which
   // scales the displacement from V by (1 - t). So the chaos-game t that produces
   // the canonical Sierpinski n-gon is t = 1 - r.
   //
   // n=7/8 use the classical literature r values (the closed-form gives ~0.308 /
-  // ~0.293, which leave visible overlap); table values 0.356 / 0.354 are cleaner.
+  // ~0.293, which leave visible overlap); table values 0.356 / 0.354 are def cleaner
   let r;
   if (n === 7) r = 0.356;
   else if (n === 8) r = 0.354;
